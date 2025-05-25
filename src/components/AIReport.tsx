@@ -20,6 +20,7 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
   const generateReport = async () => {
     setLoading(true);
     setError(null);
+    console.log('Iniciando geração do relatório...');
 
     try {
       if (!transactions.length) {
@@ -41,6 +42,8 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
         }
       });
 
+      console.log('Transações filtradas:', filteredTransactions);
+
       if (!filteredTransactions.length) {
         throw new Error(`Nenhuma transação encontrada para o período selecionado (${timeframe})`);
       }
@@ -56,6 +59,8 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
 
       const balance = totalIncome - totalExpenses;
 
+      console.log('Métricas calculadas:', { totalIncome, totalExpenses, balance });
+
       // Categorizar despesas
       const expensesByCategory = filteredTransactions
         .filter(t => t.type === 'expense')
@@ -69,6 +74,8 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
         .filter(t => t.type === 'expense')
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 3);
+
+      console.log('Dados preparados:', { expensesByCategory, topExpenses });
 
       // Gerar relatório usando DeepSeek
       const prompt = `
@@ -94,7 +101,10 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
         IMPORTANTE: Mantenha o relatório conciso mas informativo, focando nas insights mais relevantes.
       `;
 
+      console.log('Enviando prompt para a API...');
       const aiResponse = await generateAIReport(prompt);
+      console.log('Resposta recebida da API');
+      
       setReport(aiResponse);
       setError(null);
       
@@ -104,7 +114,7 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erro inesperado ao gerar relatório";
-      console.error('Erro ao gerar relatório:', error);
+      console.error('Erro detalhado ao gerar relatório:', error);
       setError(errorMessage);
       setReport(null);
       
@@ -201,27 +211,37 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
             </Button>
           ) : (
             <div className="space-y-4">
-              <pre className="whitespace-pre-wrap font-mono text-sm bg-black/20 p-4 rounded-lg">
+              <div className="bg-white/5 rounded-lg p-4 text-sm text-slate-300 whitespace-pre-wrap">
                 {report}
-              </pre>
+              </div>
+              
               <div className="flex gap-2">
                 <Button
+                  onClick={generateReport}
+                  disabled={loading}
+                  variant="outline"
+                  className="flex-1 bg-transparent border-green-500 text-green-500 hover:bg-green-500/10"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Atualizando...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Atualizar Relatório
+                    </>
+                  )}
+                </Button>
+                
+                <Button
                   onClick={downloadReport}
-                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                  variant="outline"
+                  className="bg-transparent border-blue-500 text-blue-500 hover:bg-blue-500/10"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Baixar Relatório
-                </Button>
-                <Button
-                  onClick={() => {
-                    setReport(null);
-                    setError(null);
-                  }}
-                  variant="outline"
-                  className="flex-1 border-green-500 text-green-500 hover:bg-green-500/10"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Gerar Novo
                 </Button>
               </div>
             </div>

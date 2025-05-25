@@ -104,6 +104,11 @@ const Dashboard = () => {
     };
   }, []);
 
+  // Log para debug
+  useEffect(() => {
+    console.log('Active Tab:', activeTab);
+  }, [activeTab]);
+
   // Tela de carregamento
   if (isLoading) {
     return (
@@ -193,7 +198,11 @@ const Dashboard = () => {
         </div>
 
         {/* Sistema de abas para navegação */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={setActiveTab} 
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-4 bg-white/10 backdrop-blur-lg border border-white/20">
             <TabsTrigger value="dashboard" className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-xs sm:text-sm py-1.5 sm:py-2">
               Dashboard
