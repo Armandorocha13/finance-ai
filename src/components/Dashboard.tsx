@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,301 +11,163 @@ import TransactionForm from './TransactionForm';
 import TransactionList from './TransactionList';
 import CategoryManager from './CategoryManager';
 import AIReport from './AIReport';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
-// Interface que define a estrutura de uma transação
-interface Transaction {
-  description: string;  // Descrição da transação
-  amount: number;       // Valor da transação
-  type: 'income' | 'expense';  // Tipo: receita ou despesa
-  category: string;     // Categoria da transação
-  date: string;        // Data da transação
-}
-
-// Componente principal do Dashboard
 const Dashboard = () => {
-  // Hooks de estado e contexto
-  const { user, signOut } = useAuth();  // Autenticação do usuário
-  const { toast } = useToast();         // Sistema de notificações
-  const { transactions, isLoading, addTransaction, deleteTransaction } = useTransactions();  // Gerenciamento de transações
-  
-  // Estados locais
-  const [showForm, setShowForm] = useState(false);  // Controle do modal de nova transação
-  const [activeTab, setActiveTab] = useState('dashboard');  // Controle da aba ativa
-  const [isOnline, setIsOnline] = useState(navigator.onLine);  // Estado de conexão
-
-  // Cálculo de totais
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalExpenses = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const balance = totalIncome - totalExpenses;
-
-  // Dados para o gráfico de linha
-  const chartData = [
-    { name: 'Jan', income: 6200, expenses: 4500 },
-    { name: 'Fev', income: 5800, expenses: 4200 },
-    { name: 'Mar', income: 7200, expenses: 5100 },
-    { name: 'Abr', income: 6500, expenses: 4800 },
-    { name: 'Mai', income: 7800, expenses: 5200 },
-    { name: 'Jun', income: 8200, expenses: 5500 },
-  ];
-
-  // Processamento de dados para o gráfico de pizza
-  const expensesByCategory = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, transaction) => {
-      acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-  const pieData = Object.entries(expensesByCategory).map(([category, amount], index) => ({
-    name: category,
-    value: amount,
-    color: ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'][index % 5]
-  }));
-
-  // Handlers de eventos
-  const handleAddTransaction = (transaction: Transaction) => {
-    addTransaction(transaction);
-    setShowForm(false);
-  };
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const { transactions, isLoading } = useTransactions();
+  const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      toast({
-        title: "Logout realizado!",
-        description: "Você foi desconectado com sucesso.",
-      });
+      toast.success("Você foi desconectado com sucesso.");
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao fazer logout. Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao fazer logout. Tente novamente.");
     }
   };
 
-  // Monitoramento do estado de conexão
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Log para debug
-  useEffect(() => {
-    console.log('Active Tab:', activeTab);
-  }, [activeTab]);
-
-  // Tela de carregamento
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-black to-black flex items-center justify-center">
-        <Card className="bg-white/10 backdrop-blur-lg border-white/20">
-          <CardContent className="p-8 text-center">
-            <div className="flex flex-col items-center justify-center gap-4">
-              <div className="relative">
-                {/* Círculo estático externo */}
-                <div className="w-16 h-16 rounded-full bg-green-500/20 absolute" />
-                {/* Círculo giratório interno */}
-                <Loader2 className="w-16 h-16 text-green-500 animate-spin" />
-                {/* Ícone central */}
-                <DollarSign className="w-8 h-8 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-xl text-white font-semibold">Finance io</h2>
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  <p className="text-slate-300">Carregando suas transações...</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Renderização principal do dashboard
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-black to-black p-2 sm:p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
-        {/* Cabeçalho com informações do usuário e ações */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 flex items-center">
-              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 mr-2 text-green-500" />
-              Finance io
-              {/* Online/Offline Indicator */}
-              <div className="ml-2 sm:ml-4 flex items-center text-xs sm:text-sm">
-                {isOnline ? (
-                  <div className="flex items-center text-green-500">
-                    <Wifi className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span className="hidden sm:inline">Online</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center text-yellow-500">
-                    <WifiOff className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span className="hidden sm:inline">Offline - Alterações serão sincronizadas</span>
-                    <span className="sm:hidden">Offline</span>
-                  </div>
-                )}
-              </div>
-            </h1>
-            <p className="text-sm sm:text-base text-slate-300">Controle suas finanças de forma inteligente</p>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
-            {/* User Info */}
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
-              <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              <span className="text-white truncate">
-                {user?.user_metadata?.full_name || user?.email}
-              </span>
-            </div>
-            
-            {/* Logout Button */}
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            Olá, {user?.user_metadata?.name || 'Usuário'}
+          </h1>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button
+              variant="ghost"
+              size="icon"
               onClick={handleSignOut}
-              variant="outline"
-              className="bg-transparent border-green-500 text-green-500 hover:bg-green-500/10 hover:border-green-400 text-xs sm:text-sm py-1.5 px-3 sm:px-4"
+              className="hover:text-foreground/80"
             >
-              <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              Sair
-            </Button>
-            
-            {/* Add Transaction Button */}
-            <Button 
-              onClick={() => setShowForm(true)}
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 sm:px-6 py-1.5 sm:py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 text-xs sm:text-sm flex-1 sm:flex-initial"
-            >
-              <Plus className="w-3 h-3 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
-              Nova Transação
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
-        {/* Sistema de abas para navegação */}
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab} 
-          className="w-full"
-        >
-          <TabsList className="grid w-full grid-cols-4 bg-white/10 backdrop-blur-lg border border-white/20">
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-xs sm:text-sm py-1.5 sm:py-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="bg-background/10 border-border">
+            <TabsTrigger value="dashboard" className="data-[state=active]:bg-background/20">
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="transactions" className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-xs sm:text-sm py-1.5 sm:py-2">
+            <TabsTrigger value="transactions" className="data-[state=active]:bg-background/20">
               Transações
             </TabsTrigger>
-            <TabsTrigger value="categories" className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-xs sm:text-sm py-1.5 sm:py-2">
-              <Tag className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            <TabsTrigger value="categories" className="data-[state=active]:bg-background/20">
               Categorias
             </TabsTrigger>
-            <TabsTrigger value="ai-report" className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-xs sm:text-sm py-1.5 sm:py-2">
-              <Brain className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            <TabsTrigger value="ai-report" className="data-[state=active]:bg-background/20">
               Relatório IA
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
-            {/* Metrics Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-              <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white hover:bg-white/15 transition-all duration-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-card/10 backdrop-blur-lg border-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-card-foreground/80">
                     Receitas
                   </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-green-400" />
+                  <TrendingUp className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold text-green-400">
-                    R$ {totalIncome.toLocaleString('pt-BR')}
+                  <div className="text-2xl font-bold text-green-500">
+                    R$ {transactions
+                      .filter(t => t.type === 'income')
+                      .reduce((sum, t) => sum + t.amount, 0)
+                      .toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
-                  <p className="text-xs text-slate-300 mt-1">
-                    Total de receitas
-                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white hover:bg-white/15 transition-all duration-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">
+              <Card className="bg-card/10 backdrop-blur-lg border-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-card-foreground/80">
                     Despesas
                   </CardTitle>
-                  <TrendingDown className="h-4 w-4 text-red-400" />
+                  <TrendingDown className="h-4 w-4 text-red-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold text-red-400">
-                    R$ {totalExpenses.toLocaleString('pt-BR')}
+                  <div className="text-2xl font-bold text-red-500">
+                    R$ {transactions
+                      .filter(t => t.type === 'expense')
+                      .reduce((sum, t) => sum + t.amount, 0)
+                      .toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
-                  <p className="text-xs text-slate-300 mt-1">
-                    Total de despesas
-                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white hover:bg-white/15 transition-all duration-200 sm:col-span-2 lg:col-span-1">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">
+              <Card className="bg-card/10 backdrop-blur-lg border-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-card-foreground/80">
                     Saldo
                   </CardTitle>
-                  <DollarSign className="h-4 w-4 text-blue-400" />
+                  <DollarSign className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-xl sm:text-2xl font-bold ${balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    R$ {balance.toLocaleString('pt-BR')}
+                  <div className="text-2xl font-bold text-blue-500">
+                    R$ {(transactions
+                      .filter(t => t.type === 'income')
+                      .reduce((sum, t) => sum + t.amount, 0) -
+                      transactions
+                        .filter(t => t.type === 'expense')
+                        .reduce((sum, t) => sum + t.amount, 0))
+                      .toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
-                  <p className="text-xs text-slate-300 mt-1">
-                    {balance >= 0 ? 'Situação positiva' : 'Atenção necessária'}
-                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/10 backdrop-blur-lg border-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-card-foreground/80">
+                    Transações
+                  </CardTitle>
+                  <PieChart className="h-4 w-4 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-500">
+                    {transactions.length}
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+              <Card className="bg-card/10 backdrop-blur-lg border-border">
                 <CardHeader>
-                  <CardTitle className="text-lg sm:text-xl text-slate-200">Receitas vs Despesas</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl text-card-foreground">
+                    Receitas vs Despesas
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="h-[300px] sm:h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} />
-                      <YAxis stroke="#9CA3AF" fontSize={12} />
+                    <LineChart data={transactions}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
+                      <XAxis dataKey="date" stroke="currentColor" fontSize={12} opacity={0.5} />
+                      <YAxis stroke="currentColor" fontSize={12} opacity={0.5} />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: '#1F2937', 
-                          border: 'none', 
+                          backgroundColor: 'var(--background)', 
+                          border: '1px solid var(--border)',
                           borderRadius: '8px',
-                          color: '#F9FAFB',
+                          color: 'var(--foreground)',
                           fontSize: '12px'
                         }} 
                       />
                       <Line 
                         type="monotone" 
-                        dataKey="income" 
+                        dataKey="amount" 
                         stroke="#10B981" 
                         strokeWidth={3}
                         name="Receitas"
                       />
                       <Line 
                         type="monotone" 
-                        dataKey="expenses" 
+                        dataKey="amount" 
                         stroke="#EF4444" 
                         strokeWidth={3}
                         name="Despesas"
@@ -315,68 +177,84 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+              <Card className="bg-card/10 backdrop-blur-lg border-border">
                 <CardHeader>
-                  <CardTitle className="text-lg sm:text-xl text-slate-200 flex items-center">
-                    <PieChart className="w-5 h-5 mr-2" />
-                    Gastos por Categoria
+                  <CardTitle className="text-lg sm:text-xl text-card-foreground">
+                    Distribuição de Gastos
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="h-[300px] sm:h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                       <Pie
-                        data={pieData}
+                        data={transactions
+                          .filter(t => t.type === 'expense')
+                          .reduce((acc, t) => {
+                            const existing = acc.find(item => item.category === t.category);
+                            if (existing) {
+                              existing.value += t.amount;
+                            } else {
+                              acc.push({ category: t.category, value: t.amount });
+                            }
+                            return acc;
+                          }, [] as { category: string; value: number }[])}
+                        dataKey="value"
+                        nameKey="category"
                         cx="50%"
                         cy="50%"
-                        outerRadius="80%"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#10B981"
+                        label
                       >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
+                        {transactions
+                          .filter(t => t.type === 'expense')
+                          .map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={`#${Math.floor(Math.random()*16777215).toString(16)}`} />
+                          ))}
                       </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1F2937', 
-                          border: 'none', 
-                          borderRadius: '8px',
-                          color: '#F9FAFB',
-                          fontSize: '12px'
-                        }} 
-                      />
+                      <Tooltip />
                     </RechartsPieChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Recent Transactions */}
-            <TransactionList transactions={transactions.slice(0, 5)} />
           </TabsContent>
 
           <TabsContent value="transactions" className="space-y-4 sm:space-y-6">
-            <TransactionList transactions={transactions} />
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setShowForm(true)}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Transação
+              </Button>
+            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+              </div>
+            ) : (
+              <TransactionList transactions={transactions || []} />
+            )}
           </TabsContent>
 
-          <TabsContent value="categories" className="space-y-4 sm:space-y-6">
+          <TabsContent value="categories">
             <CategoryManager />
           </TabsContent>
 
-          <TabsContent value="ai-report" className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-1 gap-4">
-              <AIReport timeframe="month" />
-            </div>
+          <TabsContent value="ai-report">
+            <AIReport timeframe="month" />
           </TabsContent>
         </Tabs>
 
-        {/* Modal do formulário de transação */}
         {showForm && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 sm:p-6 w-full max-w-md">
+          <div className="fixed inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-card/10 backdrop-blur-lg border border-border rounded-2xl p-6 w-full max-w-md">
               <TransactionForm 
-                onSubmit={handleAddTransaction}
+                onSubmit={(data) => {
+                  setShowForm(false);
+                }}
                 onCancel={() => setShowForm(false)}
               />
             </div>

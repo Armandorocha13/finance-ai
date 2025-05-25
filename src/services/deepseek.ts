@@ -26,46 +26,97 @@ export async function generateAIReport(prompt: string): Promise<string> {
 }
 
 function extractFinancialData(prompt: string): FinancialData {
-  const timeframeMatch = prompt.match(/período \((.*?)\)/);
-  const incomeMatch = prompt.match(/Receita total: R\$ ([\d.]+)/);
-  const expensesMatch = prompt.match(/Despesas totais: R\$ ([\d.]+)/);
-  const balanceMatch = prompt.match(/Saldo: R\$ ([\d.]+)/);
-  
-  // Extrair categorias de despesas
-  const categoryStart = prompt.indexOf('Despesas por categoria:') + 'Despesas por categoria:'.length;
-  const categoryEnd = prompt.indexOf('Maiores gastos:');
-  const categoriesJson = prompt.slice(categoryStart, categoryEnd).trim();
-  
-  // Extrair maiores gastos
-  const expensesStart = prompt.indexOf('Maiores gastos:') + 'Maiores gastos:'.length;
-  const expensesEnd = prompt.indexOf('INSTRUÇÕES:');
-  const expensesJson = prompt.slice(expensesStart, expensesEnd).trim();
+  try {
+    const timeframeMatch = prompt.match(/período \((.*?)\)/);
+    const incomeMatch = prompt.match(/Receita total: R\$ ([\d.,]+)/);
+    const expensesMatch = prompt.match(/Despesas totais: R\$ ([\d.,]+)/);
+    const balanceMatch = prompt.match(/Saldo: R\$ ([\d.,]+)/);
+    
+    // Extrair categorias de despesas
+    const categoryStart = prompt.indexOf('Despesas por categoria:') + 'Despesas por categoria:'.length;
+    const categoryEnd = prompt.indexOf('Maiores gastos:');
+    let categoriesJson = prompt.slice(categoryStart, categoryEnd).trim();
+    
+    // Extrair maiores gastos
+    const expensesStart = prompt.indexOf('Maiores gastos:') + 'Maiores gastos:'.length;
+    const expensesEnd = prompt.indexOf('INSTRUÇÕES:');
+    let expensesJson = prompt.slice(expensesStart, expensesEnd).trim();
 
-  if (!incomeMatch || !expensesMatch || !balanceMatch || !timeframeMatch) {
-    throw new Error('Dados financeiros não encontrados no prompt');
+    if (!incomeMatch || !expensesMatch || !balanceMatch || !timeframeMatch) {
+      throw new Error('Dados financeiros não encontrados no prompt');
+    }
+
+    // Função para limpar e parsear números
+    const parseAmount = (str: string) => {
+      if (!str) return 0;
+      return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+    };
+
+    // Limpar e validar JSON antes de parsear
+    try {
+      // Tentar parsear diretamente
+      const expensesByCategory = JSON.parse(categoriesJson);
+      const topExpenses = JSON.parse(expensesJson);
+
+      return {
+        timeframe: timeframeMatch[1],
+        totalIncome: parseAmount(incomeMatch[1]),
+        totalExpenses: parseAmount(expensesMatch[1]),
+        balance: parseAmount(balanceMatch[1]),
+        expensesByCategory,
+        topExpenses
+      };
+    } catch (jsonError) {
+      console.error('Erro ao parsear JSON:', jsonError);
+      // Se falhar, tentar limpar o JSON antes de parsear novamente
+      categoriesJson = categoriesJson.replace(/\s+/g, ' ').trim();
+      expensesJson = expensesJson.replace(/\s+/g, ' ').trim();
+
+      return {
+        timeframe: timeframeMatch[1],
+        totalIncome: parseAmount(incomeMatch[1]),
+        totalExpenses: parseAmount(expensesMatch[1]),
+        balance: parseAmount(balanceMatch[1]),
+        expensesByCategory: JSON.parse(categoriesJson),
+        topExpenses: JSON.parse(expensesJson)
+      };
+    }
+  } catch (error) {
+    console.error('Erro ao extrair dados financeiros:', error);
+    throw new Error('Falha ao processar dados do relatório: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
   }
-
-  return {
-    timeframe: timeframeMatch[1],
-    totalIncome: parseFloat(incomeMatch[1]),
-    totalExpenses: parseFloat(expensesMatch[1]),
-    balance: parseFloat(balanceMatch[1]),
-    expensesByCategory: JSON.parse(categoriesJson),
-    topExpenses: JSON.parse(expensesJson)
-  };
 }
 
 function generateLocalReport(data: FinancialData): string {
   const { totalIncome, totalExpenses, balance, expensesByCategory, topExpenses, timeframe } = data;
   
+  // Formatar números
+  const formatCurrency = (value: number): string => {
+    return value.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
   // Determinar status financeiro
   const status = balance >= 0 ? '✅ Positivo' : '⚠️ Negativo';
   const savingsRate = ((totalIncome - totalExpenses) / totalIncome * 100).toFixed(1);
   
   // Ordenar categorias por valor
   const sortedCategories = Object.entries(expensesByCategory)
-    .sort(([, a], [, b]) => b - a);
+    .sort(([, a], [, b]) => b - a)
+    .map(([category, amount]) => {
+      const percentage = (amount / totalExpenses * 100).toFixed(1);
+      return `${category}: ${formatCurrency(amount)} (${percentage}%)`;
+    });
   
+  // Formatar maiores gastos
+  const formattedTopExpenses = topExpenses.map((expense, index) => 
+    `${index + 1}. ${expense.description}: ${formatCurrency(expense.amount)} (${expense.category})`
+  );
+
   // Gerar recomendações baseadas nos dados
   const recommendations = generateRecommendations(data);
 
@@ -74,21 +125,16 @@ function generateLocalReport(data: FinancialData): string {
 
 💰 VISÃO GERAL
 ${status}
-- Receitas: R$ ${totalIncome.toFixed(2)} 📈
-- Despesas: R$ ${totalExpenses.toFixed(2)} 📉
-- Saldo: R$ ${balance.toFixed(2)} ${balance >= 0 ? '🟢' : '🔴'}
+- Receitas: ${formatCurrency(totalIncome)} 📈
+- Despesas: ${formatCurrency(totalExpenses)} 📉
+- Saldo: ${formatCurrency(balance)} ${balance >= 0 ? '🟢' : '🔴'}
 - Taxa de Economia: ${savingsRate}% ${Number(savingsRate) > 20 ? '🌟' : ''}
 
 📋 ANÁLISE DE DESPESAS POR CATEGORIA
-${sortedCategories.map(([category, amount]) => {
-  const percentage = (amount / totalExpenses * 100).toFixed(1);
-  return `- ${category}: R$ ${amount.toFixed(2)} (${percentage}%)`;
-}).join('\n')}
+${sortedCategories.join('\n')}
 
 💸 MAIORES GASTOS
-${topExpenses.map((expense, index) => 
-  `${index + 1}. ${expense.description}: R$ ${expense.amount.toFixed(2)} (${expense.category})`
-).join('\n')}
+${formattedTopExpenses.join('\n')}
 
 ${recommendations}
 

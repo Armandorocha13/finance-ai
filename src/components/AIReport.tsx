@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Download, Loader2, RefreshCw } from 'lucide-react';
+import { Brain, Loader2, Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { useTransactions } from '@/hooks/useTransactions';
 import { generateAIReport } from '@/services/deepseek';
-import { useToast } from '@/hooks/use-toast';
 
 interface AIReportProps {
   timeframe?: 'week' | 'month' | 'year';
@@ -229,7 +229,7 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="w-4 h-4 mr-2" />
+                      <Brain className="w-4 h-4 mr-2" />
                       Atualizar Relatório
                     </>
                   )}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,14 +14,17 @@ export interface Transaction {
   user_id: string;
 }
 
-export const useTransactions = () => {
+export function useTransactions() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDeletingTransaction, setIsDeletingTransaction] = useState(false);
 
   const {
-    data: transactions = [],
-    isLoading,
+    data: transactionsData = [],
+    isLoading: queryLoading,
     error
   } = useQuery({
     queryKey: ['transactions', user?.id],
@@ -40,6 +42,24 @@ export const useTransactions = () => {
     },
     enabled: !!user,
   });
+
+  useEffect(() => {
+    // Load transactions from localStorage on mount
+    const loadTransactions = () => {
+      try {
+        const savedTransactions = localStorage.getItem('transactions');
+        if (savedTransactions) {
+          setTransactions(JSON.parse(savedTransactions));
+        }
+      } catch (error) {
+        console.error('Error loading transactions:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTransactions();
+  }, []);
 
   const addTransactionMutation = useMutation({
     mutationFn: async (transaction: Omit<Transaction, 'id' | 'user_id'>) => {
@@ -59,17 +79,10 @@ export const useTransactions = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
-      toast({
-        title: "Transação adicionada!",
-        description: "Sua transação foi salva com sucesso.",
-      });
+      toast.success("Sua transação foi salva com sucesso.");
     },
     onError: (error) => {
-      toast({
-        title: "Erro",
-        description: "Erro ao salvar transação. Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao salvar transação. Tente novamente.");
       console.error('Error adding transaction:', error);
     },
   });
@@ -86,20 +99,39 @@ export const useTransactions = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
-      toast({
-        title: "Transação removida!",
-        description: "A transação foi excluída com sucesso.",
-      });
+      toast.success("A transação foi excluída com sucesso.");
     },
     onError: (error) => {
-      toast({
-        title: "Erro",
-        description: "Erro ao excluir transação. Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao excluir transação. Tente novamente.");
       console.error('Error deleting transaction:', error);
     },
   });
+
+  const addTransaction = async (newTransaction: Omit<Transaction, 'id'>) => {
+    const transaction: Transaction = {
+      ...newTransaction,
+      id: Date.now().toString(),
+    };
+
+    setTransactions(prev => {
+      const updated = [...prev, transaction];
+      localStorage.setItem('transactions', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteTransaction = async (transactionId: string) => {
+    setIsDeletingTransaction(true);
+    try {
+      setTransactions(prev => {
+        const updated = prev.filter(t => t.id !== transactionId);
+        localStorage.setItem('transactions', JSON.stringify(updated));
+        return updated;
+      });
+    } finally {
+      setIsDeletingTransaction(false);
+    }
+  };
 
   return {
     transactions,
@@ -108,6 +140,6 @@ export const useTransactions = () => {
     addTransaction: addTransactionMutation.mutate,
     deleteTransaction: deleteTransactionMutation.mutate,
     isAddingTransaction: addTransactionMutation.isPending,
-    isDeletingTransaction: deleteTransactionMutation.isPending,
+    isDeletingTransaction,
   };
-};
+}
