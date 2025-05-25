@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,7 +154,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, onCancel })
         </Button>
         <Button
           type="submit"
-          className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+          className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
         >
           Salvar
         </Button>

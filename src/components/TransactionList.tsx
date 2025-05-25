@@ -115,7 +115,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions }) => {
                     size="sm"
                     onClick={() => handleDeleteTransaction(transaction.id)}
                     disabled={isDeletingTransaction}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-green-500 hover:text-green-400 hover:bg-green-500/10"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
