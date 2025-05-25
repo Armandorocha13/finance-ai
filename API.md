@@ -342,8 +342,8 @@ Cache-Control: no-cache
 
 ### Variáveis de Ambiente
 ```env
-VITE_SUPABASE_URL=string
-VITE_SUPABASE_ANON_KEY=string
+VITE_SUPABASE_URL=https://oooxngcquideicyrqmvo.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 VITE_DEEPSEEK_API_KEY=string
 ```
 
