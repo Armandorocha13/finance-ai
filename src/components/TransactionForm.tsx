@@ -148,7 +148,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, onCancel })
           type="button"
           variant="outline"
           onClick={onCancel}
-          className="flex-1 border-white/20 text-white hover:bg-white/10"
+          className="flex-1 bg-transparent border-white text-white hover:bg-white/10"
         >
           Cancelar
         </Button>

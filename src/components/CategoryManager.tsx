@@ -151,17 +151,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
   };
 
   const handleDelete = (categoryId: string) => {
-    const category = categories.find(cat => cat.id === categoryId);
-    
-    if (category?.isDefault) {
-      toast({
-        title: "Erro",
-        description: "Não é possível excluir categorias padrão.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setCategories(prev => prev.filter(cat => cat.id !== categoryId));
     
     toast({
@@ -229,8 +218,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
                               size="sm"
                               variant="ghost"
                               onClick={() => handleEditStart(category)}
-                              className="h-8 px-2 text-blue-400 hover:text-blue-500"
-                              disabled={category.isDefault}
+                              className="h-8 px-2 text-green-500 hover:text-green-400 hover:bg-green-500/10"
                             >
                               <Edit2 className="w-4 h-4" />
                             </Button>
@@ -238,8 +226,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDelete(category.id)}
-                              className="h-8 px-2 text-red-400 hover:text-red-500"
-                              disabled={category.isDefault}
+                              className="h-8 px-2 text-green-500 hover:text-green-400 hover:bg-green-500/10"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -292,8 +279,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
                               size="sm"
                               variant="ghost"
                               onClick={() => handleEditStart(category)}
-                              className="h-8 px-2 text-blue-400 hover:text-blue-500"
-                              disabled={category.isDefault}
+                              className="h-8 px-2 text-green-500 hover:text-green-400 hover:bg-green-500/10"
                             >
                               <Edit2 className="w-4 h-4" />
                             </Button>
@@ -301,8 +287,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDelete(category.id)}
-                              className="h-8 px-2 text-red-400 hover:text-red-500"
-                              disabled={category.isDefault}
+                              className="h-8 px-2 text-green-500 hover:text-green-400 hover:bg-green-500/10"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
