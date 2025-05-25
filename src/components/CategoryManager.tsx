@@ -160,16 +160,16 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
   };
 
   return (
-    <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+    <Card className="dark-mode-bg backdrop-blur-lg dark-mode-border text-white">
       <CardHeader>
-        <CardTitle className="text-slate-200 flex items-center">
+        <CardTitle className="dark-mode-text flex items-center">
           <Tag className="w-5 h-5 mr-2" />
           Gerenciar Categorias
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs value={categoryType} onValueChange={(value) => setCategoryType(value as 'income' | 'expense')}>
-          <TabsList className="grid w-full grid-cols-2 bg-white/10">
+          <TabsList className="grid w-full grid-cols-2 dark-mode-bg">
             <TabsTrigger value="income" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
               Receitas
             </TabsTrigger>
@@ -191,7 +191,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
                           <Input
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
-                            className="flex-1 h-8 bg-white/10 border-white/20 text-white"
+                            className="flex-1 h-8 dark-mode-bg dark-mode-border text-white"
                           />
                           <Button
                             size="sm"
@@ -252,7 +252,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
                           <Input
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
-                            className="flex-1 h-8 bg-white/10 border-white/20 text-white"
+                            className="flex-1 h-8 dark-mode-bg dark-mode-border text-white"
                           />
                           <Button
                             size="sm"
@@ -307,7 +307,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
             <div>
               <Label htmlFor="categoryType" className="text-white">Tipo</Label>
               <Select value={categoryType} onValueChange={(value: 'income' | 'expense') => setCategoryType(value)}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                <SelectTrigger className="dark-mode-bg dark-mode-border text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
@@ -324,7 +324,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategoryAdded }) =>
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 placeholder="Ex: Entretenimento"
-                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                className="dark-mode-bg dark-mode-border text-white placeholder:text-slate-400"
               />
             </div>
 
