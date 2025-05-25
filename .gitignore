@@ -1,6 +1,8 @@
-# Environment variables
+nnnnn# Environment variables
 .env
 .env.local
 .env.*.local
 
 # ... existing code ... 
+node_modules
+.vercel
