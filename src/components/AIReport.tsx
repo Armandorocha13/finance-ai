@@ -20,14 +20,12 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
   const generateReport = async () => {
     setLoading(true);
     setError(null);
-    console.log('Iniciando geração do relatório...');
 
     try {
       if (!transactions.length) {
-        throw new Error('Nenhuma transação encontrada para análise');
+        throw new Error('Nenhuma transação encontrada para análise.');
       }
 
-      // Preparar os dados para análise
       const now = new Date();
       const filteredTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
@@ -42,13 +40,10 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
         }
       });
 
-      console.log('Transações filtradas:', filteredTransactions);
-
       if (!filteredTransactions.length) {
-        throw new Error(`Nenhuma transação encontrada para o período selecionado (${timeframe})`);
+        throw new Error(`Nenhuma transação encontrada para o período selecionado (${timeframe}).`);
       }
 
-      // Calcular métricas importantes
       const totalIncome = filteredTransactions
         .filter(t => t.type === 'income')
         .reduce((sum, t) => sum + t.amount, 0);
@@ -59,65 +54,71 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
 
       const balance = totalIncome - totalExpenses;
 
-      console.log('Métricas calculadas:', { totalIncome, totalExpenses, balance });
-
-      // Categorizar despesas
       const expensesByCategory = filteredTransactions
         .filter(t => t.type === 'expense')
         .reduce((acc, t) => {
-          acc[t.category] = (acc[t.category] || 0) + t.amount;
+          const category = t.category || 'Outros';
+          acc[category] = (acc[category] || 0) + t.amount;
           return acc;
         }, {} as Record<string, number>);
 
-      // Encontrar maiores gastos
       const topExpenses = filteredTransactions
         .filter(t => t.type === 'expense')
         .sort((a, b) => b.amount - a.amount)
-        .slice(0, 3);
+        .slice(0, 3)
+        .map(t => ({
+          category: t.category,
+          amount: t.amount,
+          date: t.date
+        }));
 
-      console.log('Dados preparados:', { expensesByCategory, topExpenses });
+      // Preparar dados com serialização controlada
+      const expensesByCategoryStr = Object.entries(expensesByCategory)
+        .map(([cat, val]) => `- ${cat}: R$ ${val.toFixed(2)}`)
+        .join('\n');
 
-      // Gerar relatório usando DeepSeek
+      const topExpensesStr = topExpenses
+        .map(e => `- ${e.category}: R$ ${e.amount.toFixed(2)} (Data: ${new Date(e.date).toLocaleDateString('pt-BR')})`)
+        .join('\n');
+
       const prompt = `
-        Você é um consultor financeiro especializado em análise de dados financeiros pessoais.
-        Analise os seguintes dados financeiros do período (${timeframe}) e gere um relatório detalhado e personalizado em português.
+Você é um consultor financeiro especializado em análise de dados financeiros pessoais.
+Analise os seguintes dados financeiros do período (${timeframe}) e gere um relatório detalhado e personalizado em português.
 
-        DADOS FINANCEIROS:
-        - Receita total: R$ ${totalIncome.toFixed(2)}
-        - Despesas totais: R$ ${totalExpenses.toFixed(2)}
-        - Saldo: R$ ${balance.toFixed(2)}
-        - Despesas por categoria: ${JSON.stringify(expensesByCategory, null, 2)}
-        - Maiores gastos: ${JSON.stringify(topExpenses, null, 2)}
+DADOS FINANCEIROS:
+- Receita total: R$ ${totalIncome.toFixed(2)}
+- Despesas totais: R$ ${totalExpenses.toFixed(2)}
+- Saldo: R$ ${balance.toFixed(2)}
+- Despesas por categoria:
+${expensesByCategoryStr}
+- Maiores gastos:
+${topExpensesStr}
 
-        INSTRUÇÕES:
-        1. Comece com uma visão geral da saúde financeira, usando emojis para melhor visualização
-        2. Faça uma análise detalhada dos gastos por categoria, identificando áreas de preocupação
-        3. Identifique padrões de gastos e comportamentos financeiros
-        4. Forneça recomendações personalizadas e práticas para economia
-        5. Sugira metas financeiras realistas baseadas nos dados
-        6. Use uma linguagem amigável e motivadora
-        7. Formate o texto de forma clara e organizada, usando emojis quando apropriado
+INSTRUÇÕES:
+1. Comece com uma visão geral da saúde financeira, usando emojis.
+2. Analise gastos por categoria.
+3. Identifique padrões de gastos.
+4. Forneça recomendações práticas.
+5. Sugira metas financeiras realistas.
+6. Use linguagem amigável e motivadora.
+7. Formate o texto claramente, com emojis quando apropriado.
 
-        IMPORTANTE: Mantenha o relatório conciso mas informativo, focando nas insights mais relevantes.
+IMPORTANTE: Seja conciso, informativo e foque nas informações mais relevantes.
       `;
 
-      console.log('Enviando prompt para a API...');
       const aiResponse = await generateAIReport(prompt);
-      console.log('Resposta recebida da API');
-      
       setReport(aiResponse);
       setError(null);
-      
+
       toast({
         title: "Relatório Gerado!",
         description: "Seu relatório financeiro foi gerado com sucesso.",
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro inesperado ao gerar relatório";
-      console.error('Erro detalhado ao gerar relatório:', error);
+      const errorMessage = error instanceof Error ? error.message : "Erro inesperado ao gerar relatório.";
       setError(errorMessage);
       setReport(null);
-      
+
       toast({
         title: "Erro ao Gerar Relatório",
         description: errorMessage,
@@ -130,29 +131,18 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
 
   const downloadReport = () => {
     if (!report) return;
-    
-    try {
-      // Criar o conteúdo do arquivo com cabeçalho e formatação
-      const fileContent = `Relatório Financeiro - ${new Date().toLocaleDateString('pt-BR')}\n\n${report}`;
-      
-      // Criar o blob com encoding UTF-8 para suportar caracteres especiais
-      const blob = new Blob([fileContent], { 
-        type: 'text/plain;charset=utf-8'
-      });
 
-      // Criar URL do objeto
+    try {
+      const fileContent = `Relatório Financeiro - ${new Date().toLocaleDateString('pt-BR')}\n\n${report}`;
+      const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
       const url = window.URL.createObjectURL(blob);
-      
-      // Criar elemento de link invisível
+
       const link = document.createElement('a');
       link.href = url;
       link.download = `relatorio-financeiro-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.txt`;
-      
-      // Adicionar à página, clicar e remover
       document.body.appendChild(link);
       link.click();
-      
-      // Pequeno delay antes de limpar
+
       setTimeout(() => {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
@@ -163,7 +153,6 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
         description: "Seu relatório foi baixado com sucesso.",
       });
     } catch (error) {
-      console.error('Erro ao baixar relatório:', error);
       toast({
         title: "Erro no Download",
         description: "Não foi possível baixar o relatório. Tente novamente.",
@@ -190,7 +179,6 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
               <p>{error}</p>
             </div>
           )}
-          
           {!report ? (
             <Button
               onClick={generateReport}
@@ -214,7 +202,6 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
               <div className="bg-white/5 rounded-lg p-4 text-sm text-slate-300 whitespace-pre-wrap">
                 {report}
               </div>
-              
               <div className="flex gap-2">
                 <Button
                   onClick={generateReport}
@@ -234,7 +221,6 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
                     </>
                   )}
                 </Button>
-                
                 <Button
                   onClick={downloadReport}
                   variant="outline"
@@ -252,4 +238,4 @@ const AIReport: React.FC<AIReportProps> = ({ timeframe = 'month' }) => {
   );
 };
 
-export default AIReport; 
+export default AIReport;
